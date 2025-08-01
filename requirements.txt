@@ -1,0 +1,4 @@
+tweepy==4.16.0
+python-dotenv==1.1.1
+google-generativeai==0.3.2
+requests==2.32.4 
