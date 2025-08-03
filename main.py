@@ -54,9 +54,8 @@ def get_github_activity():
         for event in events:
             print(f"Event type: {event.get('type')}, Date: {event.get('created_at')}")
             
-            # Check if it's from today and is a push event
-            if (event.get('created_at', '').startswith(today) and 
-                event.get('type') == 'PushEvent'):
+            # Check if the event is from the last 32 hours
+            if event.get('created_at', '') > (datetime.now(timezone.utc) - timedelta(hours=32)).strftime("%Y-%m-%d"):
                 
                 repo_name = event.get('repo', {}).get('name', 'Unknown repo')
                 commits = event.get('payload', {}).get('commits', [])
@@ -116,6 +115,13 @@ def generate_tweet_with_gemini(github_activity):
         summarizes my coding day. Make it sound natural and relatable to 
         other developers. Include relevant hashtags like #coding #github 
         #dev. Smaller the better.
+        
+        TONE: Be hilarious, sarcastic, or naturally conversational. Think of 
+        it like texting a developer friend about your day. Use self-
+        deprecating humor when appropriate. Be witty about coding struggles, 
+        victories, or random developer thoughts. Avoid corporate speak at 
+        all costs.
+        
         Some of my best tweets are like this - 
             Need suggestions: 
 
@@ -136,12 +142,15 @@ def generate_tweet_with_gemini(github_activity):
 
         Don't make it sound robotic or overly promotional.
         Return only the tweet.
-        Do not directly talk about the commits. Make it sound like you are talking about your day.
-        If there are multiple commits, it might be beneficial to somehow mention the project for that commit in 
-        a subtle way.
+        Do not directly talk about the commits. Make it sound like you are 
+        talking about your day.
+        If there are multiple commits, it might be beneficial to somehow 
+        mention the project for that commit in a subtle way.
         Add two \n \n after each line.
         Need to add two line breaks and empty spaces after every single line.
         Try to make the content helpful and engaging. Some insights are good.
+        Make it funny, sarcastic, or authentically human. Think memes, not 
+        marketing.
         """
     
     try:
