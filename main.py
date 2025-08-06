@@ -55,7 +55,7 @@ def get_github_activity():
             print(f"Event type: {event.get('type')}, Date: {event.get('created_at')}")
             
             # Check if the event is from the last 32 hours
-            if event.get('created_at', '') > (datetime.now(timezone.utc) - timedelta(hours=32)).strftime("%Y-%m-%d"):
+            if event.get('created_at', '') > (datetime.now(timezone.utc) - timedelta(hours=24)).strftime("%Y-%m-%d"):
                 
                 repo_name = event.get('repo', {}).get('name', 'Unknown repo')
                 commits = event.get('payload', {}).get('commits', [])
@@ -161,8 +161,8 @@ def generate_tweet_with_gemini(github_activity):
         return "Had a productive day coding! 💻 #coding #github #dev"
 
 
-def post_tweet(tweet_text):
-    """Post tweet to Twitter using Tweepy"""
+def post_tweet_thread(tweet_text, github_activity):
+    """Post tweet thread with main tweet and commit links reply"""
     if not all([API_KEY, API_SECRET_KEY, ACCESS_TOKEN, ACCESS_TOKEN_SECRET]):
         raise ValueError("Missing Twitter API credentials")
     
@@ -175,10 +175,53 @@ def post_tweet(tweet_text):
     )
     
     try:
-        response = client.create_tweet(text=tweet_text)
-        print(f"Tweet posted successfully: {tweet_text}")
-        print(f"Response: {response}")
-        return response
+        # Post the main tweet
+        main_response = client.create_tweet(text=tweet_text)
+        print(f"Main tweet posted successfully: {tweet_text}")
+        print(f"Main response: {main_response}")
+        
+        # If we have GitHub activity, create a follow-up tweet with commit links
+        if github_activity:
+            commit_links = []
+            seen_repos = set()
+            
+            for activity in github_activity:
+                repo = activity.get('repo', '')
+                
+                if repo and repo not in seen_repos:
+                    # GitHub commit URL format
+                    repo_commits_url = f"https://github.com/{repo}/commits"
+                    commit_links.append(f"📝 {repo}: {repo_commits_url}")
+                    seen_repos.add(repo)
+            
+            if commit_links:
+                # Create the follow-up tweet with links
+                links_text = "\n\n".join(commit_links[:3])
+                
+                if len(commit_links) > 3:
+                    extra_count = len(commit_links) - 3
+                    links_text += f"\n\n...and {extra_count} more repos! 🚀"
+                
+                intro = "For the curious ones, here's what I've been working on:"
+                follow_up_text = f"{intro}\n\n{links_text}"
+                
+                # Keep under 280 characters
+                if len(follow_up_text) > 280:
+                    # Truncate and add ellipsis
+                    follow_up_text = follow_up_text[:270] + "... 🔗"
+                
+                # Reply to the main tweet
+                follow_up_response = client.create_tweet(
+                    text=follow_up_text,
+                    in_reply_to_tweet_id=main_response.data['id']
+                )
+                print(f"Follow-up tweet posted: {follow_up_text}")
+                print(f"Follow-up response: {follow_up_response}")
+                
+                return main_response, follow_up_response
+        
+        return main_response, None
+        
     except tweepy.TweepyException as e:
         print(f"Error posting tweet: {e}")
         raise
@@ -195,8 +238,8 @@ def main():
         tweet_text = generate_tweet_with_gemini(github_activity)
         print(f"Generated tweet: {tweet_text}")
         
-        # Post tweet
-        post_tweet(tweet_text)
+        # Post tweet thread
+        post_tweet_thread(tweet_text, github_activity)
         
     except Exception as e:
         print(f"Error in main execution: {e}")

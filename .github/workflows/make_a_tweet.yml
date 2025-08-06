@@ -2,8 +2,8 @@ name: Daily Tweet from GitHub Activity
 
 on:
   schedule:
-    # Runs every day at 7:00 PM UTC (adjust timezone as needed)
-    - cron: '0 19 * * *'
+    # Runs every day at 7:00 PM IST (1:30 PM UTC)
+    - cron: '30 13 * * *'
   workflow_dispatch: # Allows manual triggering for testing
 
 jobs:
