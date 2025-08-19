@@ -234,6 +234,11 @@ def main():
         github_activity = get_github_activity()
         print(f"Found {len(github_activity)} GitHub activities for today")
         
+        # if 0 github activity, then return
+        if len(github_activity) == 0:
+            print("No GitHub activity found, exiting")
+            return
+
         # Generate tweet using Gemini
         tweet_text = generate_tweet_with_gemini(github_activity)
         print(f"Generated tweet: {tweet_text}")
